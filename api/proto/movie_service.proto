@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+import "movie_message.proto";
+
+message CreateMovieRequest {
+  Movie movie = 1;
+}
+
+message CreateMovieResponse {
+  Movie movie = 1;
+}
+
+message ReadMovieRequest {
+  string movie_id = 1;
+}
+
+message ReadMovieResponse {
+  Movie movie = 1;;
+}
+
+message UpdateMovieRequest {
+  Movie movie = 1;
+}
+
+message UpdateMovieResponse {
+  Movie movie = 1;
+}
+
+message DeleteMovieRequest {
+  string movie_id = 1;
+}
+
+message DeleteMovieResponse {
+  string movie_id = 1;
+}
+
+message ListMovieRequest {}
+
+message ListMovieResponse {
+  Movie movie = 1;
+}
+
+
+service MovieService {
+  rpc CreateMovie (CreateMovieRequest) returns (CreateMovieResponse);
+  rpc ReadMovie (ReadMovieRequest) returns (ReadMovieResponse); // return NOT_FOUND if not found
+  rpc UpdateMovie (UpdateMovieRequest) returns (UpdateMovieResponse); // return NOT_FOUND if not found
+  rpc DeleteMovie (DeleteMovieRequest) returns (DeleteMovieResponse); // return NOT_FOUND if not found
+  rpc ListMovie (ListMovieRequest) returns (stream ListMovieResponse);
+}
+

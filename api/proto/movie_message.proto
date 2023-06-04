@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+
+message Movie {
+  string id = 1;
+  string title = 2;
+  float rating = 3;
+  int32 year = 4;
+  string director = 5;
+  repeated string genre = 6;
+  int32 duration = 7;
+}
+

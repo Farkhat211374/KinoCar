@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+import "car_message.proto";
+
+message CreateCarRequest {
+  Car car = 1;
+}
+
+message CreateCarResponse {
+  Car car = 1;
+}
+
+message ReadCarRequest {
+  string car_id = 1;
+}
+
+message ReadCarResponse {
+  Car car = 1;
+}
+
+message UpdateCarRequest {
+  Car car = 1;
+}
+
+message UpdateCarResponse {
+  Car car = 1;
+}
+
+message DeleteCarRequest {
+  string car_id = 1;
+}
+
+message DeleteCarResponse {
+  string car_id = 1;
+}
+
+message ListCarRequest {}
+
+message ListCarResponse {
+  Car car = 1;
+}
+
+
+service CarService {
+  rpc CreateCar (CreateCarRequest) returns (CreateCarResponse);
+  rpc ReadCar (ReadCarRequest) returns (ReadCarResponse); // return NOT_FOUND if not found
+  rpc UpdateCar (UpdateCarRequest) returns (UpdateCarResponse); // return NOT_FOUND if not found
+  rpc DeleteCar (DeleteCarRequest) returns (DeleteCarResponse); // return NOT_FOUND if not found
+  rpc ListCar (ListCarRequest) returns (stream ListCarResponse);
+}
+
