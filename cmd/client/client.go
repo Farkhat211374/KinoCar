@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/farkhat/KinoCar/api/pb"
 	"google.golang.org/grpc"
 	"io"
 	"log"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -23,8 +26,10 @@ func main() {
 
 	//c1 := pb.NewCarServiceClient(connection)
 	//c2 := pb.NewMovieServiceClient(connection)
-	c3 := pb.NewFindcarServiceClient(connection)
-	createFindcar(c3)
+	//c3 := pb.NewFindcarServiceClient(connection)
+	c4 := pb.NewUserServiceClient(connection)
+	//createFindcar(c3)
+	getCarInfo(c4)
 
 }
 
@@ -237,5 +242,165 @@ func createFindcar(c pb.FindcarServiceClient) {
 	fmt.Printf("Blog has been created: %v", createCarRes)
 	carID := createCarRes.GetFindcar().GetName()
 	fmt.Println(carID)
+
+}
+
+func readFindcar(c pb.FindcarServiceClient) {
+
+	fmt.Println("Reading the blog")
+	carName := "Toyota"
+
+	_, err2 := c.ReadFindcar(context.Background(), &pb.ReadFindcarRequest{CarName: "bmv"})
+	if err2 != nil {
+		fmt.Printf("Error happened while reading: %v \n", err2)
+	}
+
+	readFindcarReq := &pb.ReadFindcarRequest{CarName: carName}
+	readFindcarRes, readFindcarErr := c.ReadFindcar(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+
+	fmt.Printf("Blog was read: %v \n", readFindcarRes)
+
+}
+
+// update Movie
+func updateFindcar(c pb.FindcarServiceClient) {
+	carName := "Toyota"
+	newFindcar := &pb.Findcar{
+		Name:   carName,
+		Movies: []string{"Pump Fiction", "Fast and Furious"},
+	}
+	updateRes, updateErr := c.UpdateFindcar(context.Background(), &pb.UpdateFindcarRequest{Findcar: newFindcar})
+	if updateErr != nil {
+		fmt.Printf("Error happened while updating: %v \n", updateErr)
+	}
+	fmt.Printf("Blog was updated: %v\n", updateRes)
+
+}
+
+// delete Movie
+func deleteFindcar(c pb.FindcarServiceClient) {
+	carName := "Toyota"
+	deleteRes, deleteErr := c.DeleteFindcar(context.Background(), &pb.DeleteFindcarRequest{CarName: carName})
+
+	if deleteErr != nil {
+		fmt.Printf("Error happened while deleting: %v \n", deleteErr)
+	}
+	fmt.Printf("Blog was deleted: %v \n", deleteRes)
+
+}
+
+func getMoviesByCar(c pb.UserServiceClient) {
+
+	fmt.Println("Loading the GetMoviesByCarRequest")
+	carName := "Toyota"
+
+	readFindcarReq := &pb.GetMoviesByCarRequest{CarName: carName}
+	readFindcarRes, readFindcarErr := c.GetMoviesByCar(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("If you want to get specil info enter 'yes', else any other words: ")
+	answer, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf(" Failed to read from console :: %v", err)
+	}
+
+	if strings.TrimRight(answer, "\r\n") == "yes" {
+		movies := readFindcarRes.Movies
+		i := 1
+		for _, movie := range movies {
+			request := &pb.GetMovieInfoRequest{MovieName: movie}
+			answer, err := c.GetMovieInfo(context.Background(), request)
+			if err != nil {
+				fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+				fmt.Printf("movie-%v : Movie Not Found \n", i)
+			} else {
+				fmt.Printf("movie-%v : %s \n", i, answer)
+			}
+			i++
+		}
+
+	}
+
+}
+
+func getCarsByMovie(c pb.UserServiceClient) {
+
+	fmt.Println("Loading ...")
+	movieName := "film1"
+
+	readFindcarReq := &pb.GetCarsByMovieRequest{MovieName: movieName}
+	readFindcarRes, readFindcarErr := c.GetCarsByMovie(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("If you want to get specil info enter 'yes', else any other words: ")
+	answer, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf(" Failed to read from console :: %v", err)
+	}
+
+	if strings.TrimRight(answer, "\r\n") == "yes" {
+		cars := readFindcarRes.Cars
+		i := 1
+		for _, car := range cars {
+			//fmt.Println(car)
+			request := &pb.GetCarInfoRequest{CarName: car}
+			answer, err := c.GetCarInfo(context.Background(), request)
+			if err != nil {
+				fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+				fmt.Printf("car-%v : Car Not Found \n", i)
+			} else {
+				fmt.Printf("car-%v : %s \n", i, answer)
+			}
+			i++
+		}
+
+	}
+
+}
+
+func getMovieInfo(c pb.UserServiceClient) {
+
+	fmt.Println("Loading ...")
+	movieName := "The Shawshank Redemption"
+
+	readFindcarReq := &pb.GetMovieInfoRequest{MovieName: movieName}
+	readFindcarRes, readFindcarErr := c.GetMovieInfo(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
+
+}
+
+func getCarInfo(c pb.UserServiceClient) {
+
+	fmt.Println("Loading ...")
+	carName := "Toyota"
+
+	readFindcarReq := &pb.GetCarInfoRequest{CarName: carName}
+	readFindcarRes, readFindcarErr := c.GetCarInfo(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
 
 }

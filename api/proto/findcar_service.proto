@@ -33,7 +33,7 @@ message DeleteFindcarRequest {
 }
 
 message DeleteFindcarResponse {
-  Findcar findcar = 1;
+  string car_name = 1;
 }
 
 

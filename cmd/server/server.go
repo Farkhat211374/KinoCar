@@ -26,10 +26,21 @@ type Server struct {
 	pb.CarServiceServer
 	pb.MovieServiceServer
 	pb.FindcarServiceServer
+	pb.UserServiceServer
+}
+
+type MovieByCar struct {
+	Car    Car      `bson:"car,omitempty"`
+	Movies []string `bson:"movies,omitempty"`
+}
+
+type CarByMovie struct {
+	Movie Movie    `bson:"movie,omitempty"`
+	Cars  []string `bson:"cars,omitempty"`
 }
 
 type Findcar struct {
-	Name   string   `bson:"carName,omitempty"`
+	Name   string   `bson:"name,omitempty"`
 	Movies []string `bson:"movies,omitempty"`
 }
 
@@ -305,6 +316,7 @@ func main() {
 	pb.RegisterCarServiceServer(grpcServer, &Server{})
 	pb.RegisterMovieServiceServer(grpcServer, &Server{})
 	pb.RegisterFindcarServiceServer(grpcServer, &Server{})
+	pb.RegisterUserServiceServer(grpcServer, &Server{})
 	// Register reflection service on gRPC server.
 	reflection.Register(grpcServer)
 
@@ -555,4 +567,287 @@ func (*Server) CreateFindcar(ctx context.Context, req *pb.CreateFindcarRequest) 
 		},
 	}, nil
 
+}
+
+func (*Server) ReadFindcar(ctx context.Context, req *pb.ReadFindcarRequest) (*pb.ReadFindcarResponse, error) {
+	fmt.Println("Read blog request")
+
+	carname := req.GetCarName()
+	//oid, err := primitive.ObjectIDFromHex(blogID)
+	//if err != nil {
+	//	return nil, status.Errorf(
+	//		codes.InvalidArgument,
+	//		fmt.Sprintf("Cannot parse ID"),
+	//	)
+	//}
+
+	// create an empty struct
+	data := &Findcar{}
+	filter := bson.M{"name": carname}
+
+	res := CollectionFindcar.FindOne(ctx, filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID: %v", err),
+		)
+	}
+
+	return &pb.ReadFindcarResponse{
+		Findcar: dataToFindcarPb(data),
+	}, nil
+}
+
+func dataToFindcarPb(data *Findcar) *pb.Findcar {
+	return &pb.Findcar{
+		Name:   data.Name,
+		Movies: data.Movies,
+	}
+}
+
+func (*Server) UpdateFindcar(ctx context.Context, req *pb.UpdateFindcarRequest) (*pb.UpdateFindcarResponse, error) {
+	fmt.Println("Update blog request")
+	findcar := req.GetFindcar()
+	//oname, err := primitive.ObjectIDFromHex(findcar.GetName())
+	//if err != nil {
+	//	return nil, status.Errorf(
+	//		codes.InvalidArgument,
+	//		fmt.Sprintf("Cannot parse ID"),
+	//	)
+	//}
+
+	// create an empty struct
+	data := &Findcar{}
+	filter := bson.M{"name": findcar.GetName()}
+
+	res := CollectionFindcar.FindOne(ctx, filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID: %v", err),
+		)
+	}
+
+	// we update our internal struct
+	data.Name = findcar.GetName()
+	data.Movies = findcar.GetMovies()
+
+	_, updateErr := CollectionCar.ReplaceOne(context.Background(), filter, data)
+	if updateErr != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot update object in MongoDB: %v", updateErr),
+		)
+	}
+
+	return &pb.UpdateFindcarResponse{
+		Findcar: dataToFindcarPb(data),
+	}, nil
+
+}
+
+func (*Server) DeleteFindcar(ctx context.Context, req *pb.DeleteFindcarRequest) (*pb.DeleteFindcarResponse, error) {
+	fmt.Println("Delete blog request")
+	//oname, err := primitive.ObjectIDFromHex(req.GetCarName())
+	//if err != nil {
+	//	return nil, status.Errorf(
+	//		codes.InvalidArgument,
+	//		fmt.Sprintf("Cannot parse ID"),
+	//	)
+	//}
+
+	filter := bson.M{"name": req.GetCarName()}
+
+	res, err := CollectionFindcar.DeleteOne(ctx, filter)
+
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot delete object in MongoDB: %v", err),
+		)
+	}
+
+	if res.DeletedCount == 0 {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog in MongoDB: %v", err),
+		)
+	}
+	//return &pb.DeleteMovieResponse{MovieId: req.GetMovieId()}, nil
+	return &pb.DeleteFindcarResponse{CarName: req.GetCarName()}, nil
+}
+
+func (*Server) GetMoviesByCar(ctx context.Context, req *pb.GetMoviesByCarRequest) (*pb.GetMoviesByCarResponse, error) {
+	fmt.Println("Read blog request")
+
+	carName := req.GetCarName()
+	// create an empty struct
+	data := &MovieByCar{}
+	carData := &Car{}
+	filter := bson.M{"name": carName}
+
+	res1 := CollectionFindcar.FindOne(ctx, filter)
+	if err := res1.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID -- 1: %v", err),
+		)
+	}
+
+	filter = bson.M{"brand": carName}
+
+	res2 := CollectionCar.FindOne(ctx, filter)
+	if err := res2.Decode(carData); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID -- 2: %v", err),
+		)
+	}
+
+	car := &pb.Car{
+		Brand:        carData.Brand,
+		Model:        carData.Model,
+		Year:         carData.Year,
+		Body:         carData.Body,
+		BrakeSystem:  carData.BrakeSystem,
+		Aspiration:   carData.Aspiration,
+		Horsepower:   carData.Horsepower,
+		Mpg:          carData.Mpg,
+		Cylinders:    carData.Cylinders,
+		Acceleration: carData.Acceleration,
+		Displacement: carData.Displacement,
+		Country:      carData.Country,
+	}
+
+	return &pb.GetMoviesByCarResponse{
+		Car:    car,
+		Movies: data.Movies,
+	}, nil
+}
+
+func (*Server) GetMovieInfo(ctx context.Context, req *pb.GetMovieInfoRequest) (*pb.GetMovieInfoResponse, error) {
+	fmt.Println("Read blog request")
+
+	movieName := req.GetMovieName()
+	// create an empty struct
+	data := &Movie{}
+
+	filter := bson.M{"title": movieName}
+
+	res1 := CollectionMovie.FindOne(ctx, filter)
+	if err := res1.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID -- 1: %v", err),
+		)
+	}
+
+	movie := &pb.Movie{
+		Title:    data.Title,
+		Rating:   data.Rating,
+		Year:     data.Year,
+		Director: data.Director,
+		Genre:    data.Genre,
+		Duration: data.Duration,
+	}
+
+	return &pb.GetMovieInfoResponse{
+		Movie: movie,
+	}, nil
+}
+
+func (*Server) GetCarInfo(ctx context.Context, req *pb.GetCarInfoRequest) (*pb.GetCarInfoResponse, error) {
+	fmt.Println("Read blog request")
+
+	carName := req.GetCarName()
+	// create an empty struct
+	data := &Car{}
+
+	filter := bson.M{"brand": carName}
+
+	res1 := CollectionCar.FindOne(ctx, filter)
+	if err := res1.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID -- 1: %v", err),
+		)
+	}
+
+	car := &pb.Car{
+		Brand:        data.Brand,
+		Model:        data.Model,
+		Year:         data.Year,
+		Body:         data.Body,
+		BrakeSystem:  data.BrakeSystem,
+		Aspiration:   data.Aspiration,
+		Horsepower:   data.Horsepower,
+		Mpg:          data.Mpg,
+		Cylinders:    data.Cylinders,
+		Acceleration: data.Acceleration,
+		Displacement: data.Displacement,
+		Country:      data.Country,
+	}
+
+	return &pb.GetCarInfoResponse{
+		Car: car,
+	}, nil
+}
+
+func (*Server) GetCarsByMovie(ctx context.Context, req *pb.GetCarsByMovieRequest) (*pb.GetCarsByMovieResponse, error) {
+	fmt.Println("Read blog request")
+
+	movieName := req.GetMovieName()
+	// create an empty struct
+	carData := &Movie{}
+	filter := bson.M{"movies": movieName}
+	projection := bson.M{"name": 1}
+	/////////////////////////
+
+	cursor, err := CollectionFindcar.Find(context.TODO(), filter, options.Find().SetProjection(projection))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cursor.Close(context.TODO())
+
+	// Slice to store the names
+	var names []string
+
+	// Iterate over the result
+	for cursor.Next(context.TODO()) {
+		var result Findcar
+		if err := cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		names = append(names, result.Name)
+	}
+
+	if err := cursor.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	/////////////////////////
+
+	filter = bson.M{"title": movieName}
+
+	res2 := CollectionMovie.FindOne(ctx, filter)
+	if err := res2.Decode(carData); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with specified ID -- 2: %v", err),
+		)
+	}
+
+	movie := &pb.Movie{
+		Title:    carData.Title,
+		Rating:   carData.Rating,
+		Year:     carData.Year,
+		Director: carData.Director,
+		Genre:    carData.Genre,
+		Duration: carData.Duration,
+	}
+
+	return &pb.GetCarsByMovieResponse{
+		Movie: movie,
+		Cars:  names,
+	}, nil
 }

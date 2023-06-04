@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+import "car_message.proto";
+import "movie_message.proto";
+
+message GetMoviesByCarRequest{
+  string car_name = 1;
+}
+
+message GetMoviesByCarResponse{
+  Car car = 1;
+  repeated string movies = 2;
+}
+
+message GetCarsByMovieRequest{
+  string movie_name = 1;
+}
+
+message GetCarsByMovieResponse{
+  Movie movie = 1;
+  repeated string cars = 2;
+}
+
+service UserService {
+  rpc GetMoviesByCar(GetMoviesByCarRequest) returns (GetMoviesByCarResponse);
+  rpc GetCarsByMovie(GetCarsByMovieRequest) returns (GetCarsByMovieResponse);
+  rpc GetCarInfo(GetCarInfoRequest) returns (GetCarInfoResponse);
+  rpc GetMovieInfo(GetMovieInfoRequest) returns (GetMovieInfoResponse);
+}
+
+message GetCarInfoRequest{
+  string car_name = 1;
+}
+
+message GetCarInfoResponse{
+  Car car = 1;
+}
+
+message GetMovieInfoRequest{
+  string movie_name = 1;
+}
+
+message GetMovieInfoResponse{
+  Movie movie = 1;
+}
