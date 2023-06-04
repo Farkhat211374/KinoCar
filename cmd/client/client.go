@@ -27,9 +27,11 @@ func main() {
 	//c1 := pb.NewCarServiceClient(connection)
 	//c2 := pb.NewMovieServiceClient(connection)
 	//c3 := pb.NewFindcarServiceClient(connection)
-	c4 := pb.NewUserServiceClient(connection)
+	//c4 := pb.NewUserServiceClient(connection)
+	//c5 := pb.NewPublishServiceClient(connection)
+	c6 := pb.NewReceiveServiceClient(connection)
 	//createFindcar(c3)
-	getCarInfo(c4)
+	receive(c6)
 
 }
 
@@ -396,6 +398,39 @@ func getCarInfo(c pb.UserServiceClient) {
 
 	readFindcarReq := &pb.GetCarInfoRequest{CarName: carName}
 	readFindcarRes, readFindcarErr := c.GetCarInfo(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
+
+}
+
+func publish(c pb.PublishServiceClient) {
+
+	fmt.Println("Loading ...")
+	carName := "Toyota"
+	movies := []string{"toy story", "star wars"}
+
+	readFindcarReq := &pb.PublishRequest{CarName: carName, Movies: movies}
+	readFindcarRes, readFindcarErr := c.Publish(context.Background(), readFindcarReq)
+	if readFindcarErr != nil {
+		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
+	}
+	fmt.Println("==================================")
+	fmt.Printf("%v \n", readFindcarRes)
+	fmt.Println("==================================")
+
+}
+
+func receive(c pb.ReceiveServiceClient) {
+
+	fmt.Println("Loading ...")
+	carName := "Toyota"
+
+	readFindcarReq := &pb.ReceiveRequest{CarName: carName}
+	readFindcarRes, readFindcarErr := c.Receive(context.Background(), readFindcarReq)
 	if readFindcarErr != nil {
 		fmt.Printf("Error happened while reading: %v \n", readFindcarErr)
 	}

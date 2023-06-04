@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/farkhat/KinoCar/api/pb"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,6 +17,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 )
 
 var CollectionCar *mongo.Collection
@@ -27,6 +29,8 @@ type Server struct {
 	pb.MovieServiceServer
 	pb.FindcarServiceServer
 	pb.UserServiceServer
+	pb.PublishServiceServer
+	pb.ReceiveServiceServer
 }
 
 type MovieByCar struct {
@@ -317,6 +321,8 @@ func main() {
 	pb.RegisterMovieServiceServer(grpcServer, &Server{})
 	pb.RegisterFindcarServiceServer(grpcServer, &Server{})
 	pb.RegisterUserServiceServer(grpcServer, &Server{})
+	pb.RegisterPublishServiceServer(grpcServer, &Server{})
+	pb.RegisterReceiveServiceServer(grpcServer, &Server{})
 	// Register reflection service on gRPC server.
 	reflection.Register(grpcServer)
 
@@ -850,4 +856,117 @@ func (*Server) GetCarsByMovie(ctx context.Context, req *pb.GetCarsByMovieRequest
 		Movie: movie,
 		Cars:  names,
 	}, nil
+}
+
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Panicf("%s: %s", msg, err)
+	}
+}
+
+func (*Server) Publish(ctx context.Context, req *pb.PublishRequest) (*pb.PublishResponse, error) {
+	fmt.Println("Publish request")
+	carName := req.GetCarName()
+	movies := req.GetMovies()
+
+	body := ""
+
+	for _, movie := range movies {
+		body += movie + ", "
+	}
+	fmt.Println(body)
+
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	failOnError(err, "Failed to connect to RabbitMQ")
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	failOnError(err, "Failed to open a channel")
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		carName, // name
+		true,    // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+	failOnError(err, "Failed to declare a queue")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = ch.PublishWithContext(ctx,
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,
+		amqp.Publishing{
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "text/plain",
+			Body:         []byte(body),
+		})
+	failOnError(err, "Failed to publish a message")
+	status := "SENT"
+	if err != nil {
+		status = "DID NOT SEND"
+	}
+
+	return &pb.PublishResponse{
+		Status: status,
+	}, nil
+}
+
+func (*Server) Receive(ctx context.Context, req *pb.ReceiveRequest) (*pb.ReceiveResponse, error) {
+	fmt.Println("Receive request")
+	carName := req.GetCarName()
+
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	failOnError(err, "Failed to connect to RabbitMQ")
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	failOnError(err, "Failed to open a channel")
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		carName, // name
+		false,   // durable (длительного пользования), make sure that the queue will survive a RabbitMQ node restart
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+	failOnError(err, "Failed to declare a queue")
+
+	// deliver the messages from the queue
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		true,   // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+	failOnError(err, "Failed to register a consumer")
+
+	var forever chan struct{}
+	// Since the server will push messages asynchronously,
+	// we will read the messages from a channel (returned by amqp::Consume) in a goroutine.
+	go func() {
+		for d := range msgs {
+			log.Printf("Received a message: %s", d.Body)
+		}
+	}()
+
+	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	<-forever
+
+	return &pb.ReceiveResponse{
+		CarName: carName,
+		Movies:  []string{"1", "2", "3"},
+	}, nil
+
 }

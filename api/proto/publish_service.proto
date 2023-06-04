@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+
+service PublishService {
+  rpc Publish(PublishRequest) returns (PublishResponse);
+}
+
+message PublishRequest{
+  string car_name = 1;
+  repeated string movies = 2;
+}
+
+message PublishResponse{
+  string status = 1;
+}

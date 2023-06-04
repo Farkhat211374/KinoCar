@@ -3,7 +3,7 @@ module github.com/farkhat/KinoCar
 go 1.19
 
 require (
-	github.com/simplesteph/grpc-go-course v0.0.0-20220125143403-f72ed726e9a7
+	github.com/rabbitmq/amqp091-go v1.8.1
 	go.mongodb.org/mongo-driver v1.11.6
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0

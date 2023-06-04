@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "github.com/farkhat/KinoCar";
+
+service ReceiveService {
+  rpc Receive(ReceiveRequest) returns (ReceiveResponse);
+}
+
+message ReceiveRequest{
+  string car_name = 1;
+}
+
+message ReceiveResponse{
+  string car_name = 1;
+  repeated string movies = 2;
+}
