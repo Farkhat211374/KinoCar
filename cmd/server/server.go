@@ -932,7 +932,7 @@ func (*Server) Receive(ctx context.Context, req *pb.ReceiveRequest) (*pb.Receive
 
 	q, err := ch.QueueDeclare(
 		carName, // name
-		false,   // durable (длительного пользования), make sure that the queue will survive a RabbitMQ node restart
+		true,    // durable (длительного пользования), make sure that the queue will survive a RabbitMQ node restart
 		false,   // delete when unused
 		false,   // exclusive
 		false,   // no-wait
