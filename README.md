@@ -12,6 +12,7 @@ Project features
 We chose this topic because first of all we are interested in this topic ourselves and we were also interested in implementing this project, in the process of work we realized that our project may well have a good future. The idea is that by the name of the car we can search for them in movies, TV shows and then get information about them. There are plans for the future to add not only cars but also motorcycles, etc. 
 
 Example: 
+![image](https://github.com/Farkhat211374/KinoCar/assets/97591283/f9a0bad5-6b3a-4a2f-b2fb-66734367708c)
 
  
 
